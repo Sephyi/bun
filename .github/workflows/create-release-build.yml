@@ -40,10 +40,20 @@ jobs:
       arch: x64
       cpu: haswell
       canary: false
-
+  windows-x64-baseline:
+    name: Build windows-x64-baseline
+    uses: ./.github/workflows/build-windows.yml
+    secrets: inherit
+    with:
+      runs-on: windows
+      tag: windows-x64-baseline
+      arch: x64
+      cpu: nehalem
+      canary: false
   upload-artifacts:
     needs:
       - windows-x64
+      - windows-x64-baseline
     runs-on: ubuntu-latest
     steps:
       - name: Download Artifacts
