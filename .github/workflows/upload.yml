@@ -15,7 +15,7 @@ on:
 
 jobs:
   upload:
-    if: ${{ github.repository_owner == 'oven-sh' }}
+    if: ${{ github.repository_owner == 'Sephyi' }}
     name: Upload Artifacts
     runs-on: ubuntu-latest
     steps:
