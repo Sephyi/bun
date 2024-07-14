@@ -39,7 +39,7 @@ jobs:
       tag: windows-x64
       arch: x64
       cpu: haswell
-      canary: false
+      canary: true
   windows-x64-baseline:
     name: Build windows-x64-baseline
     uses: ./.github/workflows/build-windows.yml
@@ -49,7 +49,7 @@ jobs:
       tag: windows-x64-baseline
       arch: x64
       cpu: nehalem
-      canary: false
+      canary: true
   upload-artifacts:
     needs:
       - windows-x64
@@ -71,13 +71,6 @@ jobs:
           else
             echo "Artifacts downloaded successfully."
           fi
-      - name: Send Message
-        uses: sarisia/actions-status-discord@v1
-        with:
-          webhook: ${{ secrets.DISCORD_WEBHOOK }}
-          nodetail: true
-          color: "#FF0000"
-          title: "Bun v${{ inputs.version }} release artifacts uploaded"
       - name: "Upload Artifacts"
         env:
           GH_TOKEN: ${{ github.token }}
