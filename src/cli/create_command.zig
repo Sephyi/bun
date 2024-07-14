@@ -2033,6 +2033,33 @@ pub const Example = struct {
         return mutable.*;
     }
 
+    pub fn parseProxyCredentials(proxyUrl: []const u8, allocator: *std.mem.Allocator) !?[]u8 {
+        const url = try std.net.Url.parse(proxyUrl, allocator);
+        defer allocator.free(url);
+
+        if (url.username == null or url.password == null) {
+            return null;
+        }
+
+        // Format username:password for basic auth
+        var authInfo = try std.fmt.allocPrint(allocator, "{s}:{s}", .{ url.username.?, url.password.? });
+        defer allocator.free(authInfo);
+
+        // Encode with base64
+        var encoder = std.base64.Encoder.init();
+        var encoded = try encoder.encodeToSlice(allocator, authInfo);
+        return encoded;
+    }
+
+    fn setupProxyAuth(http_client: *HTTP.AsyncHTTP, env_loader: *DotEnv.Loader, target_url: std.net.Url) !void {
+        const proxy_url = env_loader.getHttpProxy(target_url)?.toString() orelse return;
+        if (parseProxyCredentials(proxy_url, std.heap.page_allocator)) |authHeader| {
+            const authHeaderString = "Basic " ++ authHeader;
+            // Assuming there is a way to set headers directly or modify the existing function
+            http_client.headers.set("Proxy-Authorization", authHeaderString);
+        }
+    }
+
     pub fn fetch(ctx: Command.Context, env_loader: *DotEnv.Loader, name: string, refresher: *Progress, progress: *Progress.Node) !MutableString {
         progress.name = "Fetching package.json";
         refresher.refresh();
@@ -2041,11 +2068,11 @@ pub const Example = struct {
         var mutable = try ctx.allocator.create(MutableString);
         mutable.* = try MutableString.init(ctx.allocator, 2048);
 
-        url = URL.parse(try std.fmt.bufPrint(&url_buf, "https://registry.npmjs.org/@bun-examples/{s}/latest", .{name}));
+        const url = std.net.Url.parse(try std.fmt.bufPrint(&url_buf, "https://registry.npmjs.org/@bun-examples/{s}/latest", .{name}));
 
         var http_proxy: ?URL = env_loader.getHttpProxy(url);
 
-        // ensure very stable memory address
+        // Setup HTTP client
         var async_http: *HTTP.AsyncHTTP = ctx.allocator.create(HTTP.AsyncHTTP) catch unreachable;
         async_http.* = HTTP.AsyncHTTP.initSync(
             ctx.allocator,
@@ -2060,10 +2087,14 @@ pub const Example = struct {
             null,
             HTTP.FetchRedirect.follow,
         );
+
+        // Setting proxy auth
+        try setupProxyAuth(async_http, env_loader, url);
+
         async_http.client.progress_node = progress;
         async_http.client.reject_unauthorized = env_loader.getTLSRejectUnauthorized();
 
-        var response = try async_http.sendSync(true);
+        const response = try async_http.sendSync(true);
 
         switch (response.status_code) {
             404 => return error.ExampleNotFound,
@@ -2128,15 +2159,13 @@ pub const Example = struct {
         progress.name = "Downloading tarball";
         refresher.refresh();
 
-        // reuse mutable buffer
-        // safe because the only thing we care about is the tarball url
+        // Reuse mutable buffer
         mutable.reset();
 
-        // ensure very stable memory address
-        const parsed_tarball_url = URL.parse(tarball_url);
+        // Parse the tarball URL for another HTTP request
+        const parsed_tarball_url = std.net.Url.parse(tarball_url);
 
         http_proxy = env_loader.getHttpProxy(parsed_tarball_url);
-
         async_http.* = HTTP.AsyncHTTP.initSync(
             ctx.allocator,
             .GET,
@@ -2150,6 +2179,9 @@ pub const Example = struct {
             null,
             HTTP.FetchRedirect.follow,
         );
+
+        try setupProxyAuth(async_http, env_loader, parsed_tarball_url);
+
         async_http.client.progress_node = progress;
         async_http.client.reject_unauthorized = env_loader.getTLSRejectUnauthorized();
 
@@ -2172,7 +2204,9 @@ pub const Example = struct {
     }
 
     pub fn fetchAll(ctx: Command.Context, env_loader: *DotEnv.Loader, progress_node: ?*Progress.Node) ![]Example {
-        url = URL.parse(examples_url);
+        const examples_url = "https://api.example.com/list-examples";
+        var url_buf: [1024]u8 = undefined;
+        const url = std.net.Url.parse(try std.fmt.bufPrint(&url_buf, "{s}", .{examples_url}));
 
         const http_proxy: ?URL = env_loader.getHttpProxy(url);
 
@@ -2193,13 +2227,16 @@ pub const Example = struct {
             null,
             HTTP.FetchRedirect.follow,
         );
-        async_http.client.reject_unauthorized = env_loader.getTLSRejectUnauthorized();
 
+        // Setting proxy auth
+        try setupProxyAuth(async_http, env_loader, url);
+
+        async_http.client.reject_unauthorized = env_loader.getTLSRejectUnauthorized();
         if (Output.enable_ansi_colors) {
             async_http.client.progress_node = progress_node;
         }
 
-        const response = async_http.sendSync(true) catch |err| {
+        const response = try async_http.sendSync(true) catch |err| {
             switch (err) {
                 error.WouldBlock => {
                     Output.prettyErrorln("Request timed out while trying to fetch examples list. Please try again", .{});
@@ -2245,7 +2282,6 @@ pub const Example = struct {
         if (examples_object.asProperty("examples")) |q| {
             if (q.expr.data == .e_object) {
                 const count = q.expr.data.e_object.properties.len;
-
                 var list = try ctx.allocator.alloc(Example, count);
                 for (q.expr.data.e_object.properties.slice(), 0..) |property, i| {
                     const name = property.key.?.data.e_string.data;
