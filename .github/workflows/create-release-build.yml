@@ -55,66 +55,6 @@ jobs:
             ### @${{ github.actor }} started compiling Bun v${{inputs.version}}
 
             **[View logs](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})**
-  linux-x64:
-    name: Build linux-x64
-    uses: ./.github/workflows/build-linux.yml
-    secrets: inherit
-    with:
-      runs-on: ${{ github.repository_owner == 'oven-sh' && 'namespace-profile-bun-ci-linux-x64' || 'ubuntu-latest' }}
-      tag: linux-x64
-      arch: x64
-      cpu: haswell
-      canary: false
-  linux-x64-baseline:
-    name: Build linux-x64-baseline
-    uses: ./.github/workflows/build-linux.yml
-    secrets: inherit
-    with:
-      runs-on: ${{ github.repository_owner == 'oven-sh' && 'namespace-profile-bun-ci-linux-x64' || 'ubuntu-latest' }}
-      tag: linux-x64-baseline
-      arch: x64
-      cpu: nehalem
-      canary: false
-  linux-aarch64:
-    name: Build linux-aarch64
-    uses: ./.github/workflows/build-linux.yml
-    secrets: inherit
-    with:
-      runs-on: namespace-profile-bun-ci-linux-aarch64
-      tag: linux-aarch64
-      arch: aarch64
-      cpu: native
-      canary: false
-  darwin-x64:
-    name: Build darwin-x64
-    uses: ./.github/workflows/build-darwin.yml
-    secrets: inherit
-    with:
-      runs-on: ${{ github.repository_owner == 'oven-sh' && 'macos-12-large' || 'macos-12' }}
-      tag: darwin-x64
-      arch: x64
-      cpu: haswell
-      canary: false
-  darwin-x64-baseline:
-    name: Build darwin-x64-baseline
-    uses: ./.github/workflows/build-darwin.yml
-    secrets: inherit
-    with:
-      runs-on: ${{ github.repository_owner == 'oven-sh' && 'macos-12-large' || 'macos-12' }}
-      tag: darwin-x64-baseline
-      arch: x64
-      cpu: nehalem
-      canary: false
-  darwin-aarch64:
-    name: Build darwin-aarch64
-    uses: ./.github/workflows/build-darwin.yml
-    secrets: inherit
-    with:
-      runs-on: ${{ github.repository_owner == 'oven-sh' && 'namespace-profile-bun-ci-darwin-aarch64' || 'macos-12' }}
-      tag: darwin-aarch64
-      arch: aarch64
-      cpu: native
-      canary: false
   windows-x64:
     name: Build windows-x64
     uses: ./.github/workflows/build-windows.yml
@@ -138,12 +78,6 @@ jobs:
 
   upload-artifacts:
     needs:
-      - linux-x64
-      - linux-x64-baseline
-      - linux-aarch64
-      - darwin-x64
-      - darwin-x64-baseline
-      - darwin-aarch64
       - windows-x64
       - windows-x64-baseline
     runs-on: ubuntu-latest
