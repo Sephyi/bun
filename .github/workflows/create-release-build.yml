@@ -30,31 +30,6 @@ on:
       - created
 
 jobs:
-  notify-start:
-    if: ${{ github.repository_owner == 'Sephyi' }}
-    name: Notify Start
-    runs-on: ubuntu-latest
-    steps:
-      - name: Send Message
-        uses: sarisia/actions-status-discord@v1
-        with:
-          webhook: ${{ secrets.DISCORD_WEBHOOK_PUBLIC }}
-          nodetail: true
-          color: "#1F6FEB"
-          title: "Bun v${{ inputs.version }} is compiling"
-          description: |
-            ### @${{ github.actor }} started compiling Bun v${{inputs.version}}
-      - name: Send Message
-        uses: sarisia/actions-status-discord@v1
-        with:
-          webhook: ${{ secrets.BUN_DISCORD_GITHUB_CHANNEL_WEBHOOK }}
-          nodetail: true
-          color: "#1F6FEB"
-          title: "Bun v${{ inputs.version }} is compiling"
-          description: |
-            ### @${{ github.actor }} started compiling Bun v${{inputs.version}}
-
-            **[View logs](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})**
   windows-x64:
     name: Build windows-x64
     uses: ./.github/workflows/build-windows.yml
@@ -65,21 +40,10 @@ jobs:
       arch: x64
       cpu: haswell
       canary: false
-  windows-x64-baseline:
-    name: Build windows-x64-baseline
-    uses: ./.github/workflows/build-windows.yml
-    secrets: inherit
-    with:
-      runs-on: windows
-      tag: windows-x64-baseline
-      arch: x64
-      cpu: nehalem
-      canary: false
 
   upload-artifacts:
     needs:
       - windows-x64
-      - windows-x64-baseline
     runs-on: ubuntu-latest
     steps:
       - name: Download Artifacts
