@@ -328,7 +328,7 @@ jobs:
           if-no-files-found: error
           overwrite: true
   on-failure:
-    if: ${{ github.repository_owner == 'oven-sh' && failure() }}
+    if: ${{ github.repository_owner == 'Sephyi' && failure() }}
     name: On Failure
     needs: link
     runs-on: ubuntu-latest
