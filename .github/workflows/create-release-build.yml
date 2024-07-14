@@ -31,7 +31,7 @@ on:
 
 jobs:
   notify-start:
-    if: ${{ github.repository_owner == 'oven-sh' }}
+    if: ${{ github.repository_owner == 'Sephyi' }}
     name: Notify Start
     runs-on: ubuntu-latest
     steps:
